@@ -1,0 +1,9 @@
+# Development
+.DS_Store
+node_modules/
+*.log
+
+# IDE files
+.idea/
+.vscode/
+*.swp
