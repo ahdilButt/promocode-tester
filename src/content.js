@@ -1,28 +1,16 @@
-// Store our promo codes
+// List of promo codes to test
 const PROMO_CODES = [
     'TEST', 'TEST10', 'TEST20', 'WELCOME10', 'WELCOME20', 'SAVE10', 'SAVE20', 'SAVE50', 
     'DISCOUNT10', 'DISCOUNT20', 'FALL10', 'FALL20', 'WINTER10', 'WINTER20', 'SPRING10', 
-    'SPRING20', 'SUMMER10', 'SUMMER20','50PAIR20', 'XMAS15', 'HOLIDAY25', 'FIRSTBUY10', 'NEWCOMER15', 
-    'START30', 'NEW10', 'FIRST20', 'FREESHIP50', 'FREESHIPPING', 'SHIPFREE', 'SHIP4FREE', 
-    'FREESHIP200', 'FLASHSALE20', 'FLASH50', 'QUICKBUY25', 'LIMITED25', 'COUNTDOWN50', 
-    'BUYONEGETONE', 'TWOFORONE', 'FREESECOND', 'HALFPRICE50', 'LOYALTY15', 'REFER10', 
-    'FRIEND15', 'SHARE20', 'SORRY10', 'OOPS15', 'EMPLOYEE25', 'MILITARY15', 'BLACKFRIDAY50', 
-    'CYBERMONDAY30', 'STUDENT10', 'ADMIN20', 'HELLO15', 'THANKYOU25', 'BONUS30', 'DEAL50', 
-    'SPECIAL40', 'MEMBER15', 'EXCLUSIVE20', 'VIP25', 'EARLYBIRD30', 'LASTCHANCE40', 
-    'ECOFRIENDLY10', 'GREEN15', 'EVENT30', 'INFLUENCER25', 'SUBSCRIBE20', 'RETARGETED15', 
-    'EXITINTENT10', 'ABANDONEDCART5', 'UKDEAL10', 'BRITISH15', 'LONDON20', 'SAVEUK25', 
-    'ROYALSAVE', 'QEII10', 'UKONLY', 'POUNDOFF5', 'TEATIME10', 'UKVIP20', 'BRITISHPOUND15', 
-    'UKEXPRESS', 'UKFIRST25', 'QUEENUK10', 'UKSHOP30', 'SHOPNOW10', 'NEWUSER20', 'GET50OFF', 
-    'INSTA20', 'FBDEAL15', 'TIKTOK25', 'YTSALE10', 'THREADS15', 'SPRINGSALE20', 'UKSAVE10', 
-    'ROYALDEAL25'
+    'SPRING20', 'SUMMER10', 'SUMMER20', 'XMAS15', 'HOLIDAY25', 'FIRSTBUY10', 'NEWCOMER15', 
+    'START30', 'NEW10', 'FIRST20', 'FREESHIP50', 'FREESHIPPING', 'SHIPFREE', 'SHIP4FREE'
 ];
 
 class PromoTester {
     constructor() {
         this.successfulCodes = [];
-        this.testedCodes = new Set();
         this.isRunning = false;
-        this.debug = true; // Enable debugging
+        this.debug = true;
     }
 
     log(message) {
@@ -31,43 +19,24 @@ class PromoTester {
         }
     }
 
-    // Find the promo code input with enhanced detection
     findPromoInput() {
         this.log('Searching for promo input field...');
         
-        // Priority patterns for placeholder text and labels
-        const PRIORITY_TERMS = [
-            'discount code',
-            'promo code',
-            'coupon code',
-            'voucher code',
-            'gift card',
-            'discount',
-            'promo',
-            'coupon',
-            'voucher'
+        const promoTerms = [
+            'promo', 'coupon', 'discount', 'voucher', 
+            'code', 'gift', 'offer', 'promotional'
         ];
 
-        // Terms that indicate we should SKIP this input
-        const EXCLUDE_TERMS = [
-            'post',
-            'postal',
-            'zip',
-            'postcode',
-            'email',
-            'phone',
-            'address',
-            'search'
+        const excludeTerms = [
+            'post', 'postal', 'zip', 'postcode', 'email',
+            'phone', 'address', 'search', 'password'
         ];
 
-        // First try Shopify-specific selectors
         const shopifySelectors = [
-            '#discount',  // Common Shopify discount input ID
+            '#discount',
             'input[name="discount"]',
-            'input[autocomplete="off"][aria-label*="discount" i]',
             '[data-discount-field]',
-            '#checkout_reduction_code',
-            '#checkout_discount_code'
+            '#checkout_reduction_code'
         ];
 
         for (const selector of shopifySelectors) {
@@ -78,63 +47,60 @@ class PromoTester {
             }
         }
 
-        // Get all visible input fields
         const inputs = Array.from(document.getElementsByTagName('input'))
             .filter(input => this.isVisibleElement(input));
-
-        // First pass: Check placeholder text and labels for priority terms
+        
         for (const input of inputs) {
-            const textToCheck = [
-                input.placeholder?.toLowerCase() || '',
-                input.getAttribute('aria-label')?.toLowerCase() || '',
-                input.name?.toLowerCase() || '',
-                input.id?.toLowerCase() || '',
-                this.findLabelText(input)?.toLowerCase() || ''
-            ].join(' ');
+            const attrs = {
+                placeholder: (input.placeholder || '').toLowerCase(),
+                name: (input.name || '').toLowerCase(),
+                id: (input.id || '').toLowerCase(),
+                type: (input.type || '').toLowerCase()
+            };
 
-            // Skip if contains exclude terms
-            if (EXCLUDE_TERMS.some(term => textToCheck.includes(term))) {
-                this.log(`Skipping input due to exclude term: ${textToCheck}`);
+            if (excludeTerms.some(term => 
+                Object.values(attrs).some(attr => attr.includes(term)))) {
                 continue;
             }
 
-            // Check for priority terms
-            if (PRIORITY_TERMS.some(term => textToCheck.includes(term))) {
-                this.log(`Found input with priority term: ${textToCheck}`);
+            if (promoTerms.some(term => 
+                Object.values(attrs).some(attr => attr.includes(term)))) {
+                this.log('Found promo input through attributes');
                 return input;
             }
-        }
 
-        // Second pass: Check surrounding context
-        for (const input of inputs) {
+            const labelText = this.findLabelText(input).toLowerCase();
+            if (promoTerms.some(term => labelText.includes(term))) {
+                this.log('Found promo input through label');
+                return input;
+            }
+
             const nearbyText = this.getNearbyText(input).toLowerCase();
-            
-            // Skip if contains exclude terms
-            if (EXCLUDE_TERMS.some(term => nearbyText.includes(term))) {
-                continue;
-            }
-
-            // Check for priority terms in nearby text
-            if (PRIORITY_TERMS.some(term => nearbyText.includes(term))) {
-                this.log(`Found input with nearby priority term: ${nearbyText}`);
+            if (promoTerms.some(term => nearbyText.includes(term))) {
+                this.log('Found promo input through nearby text');
                 return input;
             }
         }
 
-        this.log('No specific promo input found');
+        this.log('No promo input found');
         return null;
     }
 
-    // Get label text for an input
+    isVisibleElement(element) {
+        if (!element) return false;
+        const style = window.getComputedStyle(element);
+        return style.display !== 'none' && 
+               style.visibility !== 'hidden' && 
+               element.offsetParent !== null;
+    }
+
     findLabelText(input) {
         let labelText = '';
         
-        // Check for aria-label
         if (input.getAttribute('aria-label')) {
             labelText += ' ' + input.getAttribute('aria-label');
         }
 
-        // Check for explicit label
         if (input.id) {
             const label = document.querySelector(`label[for="${input.id}"]`);
             if (label) {
@@ -142,196 +108,135 @@ class PromoTester {
             }
         }
 
-        // Check parent label
         const parentLabel = input.closest('label');
         if (parentLabel) {
             labelText += ' ' + parentLabel.textContent;
         }
 
-        // Check for aria-labelledby
-        const labelledBy = input.getAttribute('aria-labelledby');
-        if (labelledBy) {
-            labelledBy.split(' ').forEach(id => {
-                const element = document.getElementById(id);
-                if (element) {
-                    labelText += ' ' + element.textContent;
-                }
-            });
-        }
-
         return labelText.trim();
     }
 
-    // Get text from nearby elements
     getNearbyText(element) {
         let text = '';
-        
-        // Look at parent and siblings
         const parent = element.parentElement;
         if (parent) {
-            // Get text from parent
             text += ' ' + parent.textContent;
-            
-            // Look at previous and next siblings
-            const prevSibling = element.previousElementSibling;
-            const nextSibling = element.nextElementSibling;
-            
-            if (prevSibling) text += ' ' + prevSibling.textContent;
-            if (nextSibling) text += ' ' + nextSibling.textContent;
+            const siblings = Array.from(parent.children);
+            for (const sibling of siblings) {
+                if (sibling !== element) {
+                    text += ' ' + sibling.textContent;
+                }
+            }
         }
-
         return text.trim();
     }
 
-    // Find label text for an input
-    findLabelText(input) {
-        // Check for explicit label
-        if (input.id) {
-            const label = document.querySelector(`label[for="${input.id}"]`);
-            if (label) return label.textContent;
-        }
-
-        // Check parent label
-        const parentLabel = input.closest('label');
-        if (parentLabel) return parentLabel.textContent;
-
-        return '';
-    }
-
-    // Get text from nearby elements
-    getNearbyText(element) {
-        let text = '';
-        const range = 2; // Look within 2 elements up and around
-        
-        // Look up the parent chain
-        let current = element.parentElement;
-        for (let i = 0; i < range && current; i++) {
-            text += ' ' + current.textContent;
-            current = current.parentElement;
-        }
-
-        // Look at siblings
-        const parent = element.parentElement;
-        if (parent) {
-            Array.from(parent.children).forEach(child => {
-                if (child !== element) {
-                    text += ' ' + child.textContent;
-                }
-            });
-        }
-
-        return text;
-    }
-
-    // Check if an element is visible
-    isVisibleElement(element) {
-        if (!element) return false;
-        
-        const style = window.getComputedStyle(element);
-        const isVisible = style.display !== 'none' && 
-                         style.visibility !== 'hidden' && 
-                         element.offsetParent !== null;
-        
-        this.log(`Checking visibility of element: ${element.tagName} - Visible: ${isVisible}`);
-        return isVisible;
-    }
-
-    // Test a single promo code
-    // Find submit button for promo code
     findSubmitButton(input) {
-        const submitTerms = ['apply', 'submit', 'ok', 'verify', 'check', 'redeem'];
+        const submitTerms = ['apply', 'submit', 'ok', 'verify', 'redeem'];
         
-        // Look for button in same form first
         const form = input.closest('form');
         if (form) {
-            // Try submit button
             const submitBtn = form.querySelector('button[type="submit"], input[type="submit"]');
             if (submitBtn && this.isVisibleElement(submitBtn)) {
+                this.log('Found submit button in form');
                 return submitBtn;
             }
         }
 
-        // Look for nearby buttons
-        const buttons = Array.from(document.querySelectorAll('button, input[type="button"], [role="button"]'))
-            .filter(btn => this.isVisibleElement(btn));
+        const buttons = Array.from(document.querySelectorAll(
+            'button, input[type="button"], [role="button"]'
+        )).filter(btn => this.isVisibleElement(btn));
 
         for (const button of buttons) {
             const buttonText = button.textContent.toLowerCase();
             if (submitTerms.some(term => buttonText.includes(term))) {
+                this.log('Found submit button by text');
                 return button;
             }
         }
 
+        this.log('No submit button found');
         return null;
     }
 
-    async submitCode(input, code, submitButton) {
-        // Try multiple submission methods
-        let submitted = false;
-
-        // 1. Try submit button if found
-        if (submitButton) {
-            this.log('Clicking submit button');
-            submitButton.click();
-            submitted = true;
+    async startTesting() {
+        if (this.isRunning) {
+            this.log('Already running tests');
+            return;
         }
 
-        // 2. Try form submission
-        const form = input.closest('form');
-        if (form && !submitted) {
-            this.log('Submitting form');
-            form.dispatchEvent(new Event('submit', { bubbles: true, cancelable: true }));
-            submitted = true;
-        }
+        this.isRunning = true;
+        this.log('Starting promo code testing...');
 
-        // 3. Try Enter key as last resort
-        if (!submitted) {
-            this.log('Simulating Enter key');
-            input.dispatchEvent(new KeyboardEvent('keydown', { key: 'Enter', code: 'Enter', bubbles: true }));
-            input.dispatchEvent(new KeyboardEvent('keypress', { key: 'Enter', code: 'Enter', bubbles: true }));
-            input.dispatchEvent(new KeyboardEvent('keyup', { key: 'Enter', code: 'Enter', bubbles: true }));
+        try {
+            for (const code of PROMO_CODES) {
+                if (!this.isRunning) {
+                    this.log('Testing stopped by user');
+                    this.showStoppedNotification();
+                    return;
+                }
+
+                chrome.runtime.sendMessage({ 
+                    type: 'progress', 
+                    message: `Testing code: ${code}`
+                });
+
+                const isSuccess = await this.testPromoCode(code);
+                
+                if (!this.isRunning) {
+                    this.log('Testing stopped by user');
+                    this.showStoppedNotification();
+                    return;
+                }
+
+                if (this.isRunning) {
+                    await new Promise(resolve => setTimeout(resolve, 500));
+                }
+            }
+
+            if (this.isRunning) {
+                this.showCompletionNotification();
+            }
+        } catch (error) {
+            this.log('Error during testing:', error);
+            chrome.runtime.sendMessage({ 
+                type: 'error',
+                message: `Error: ${error.message}`
+            });
+        } finally {
+            this.isRunning = false;
         }
     }
 
     async testPromoCode(code) {
+        if (!this.isRunning) {
+            return false;
+        }
+
         this.log(`Testing code: ${code}`);
         
         try {
-            // Find promo input field
             const input = this.findPromoInput();
             if (!input) {
                 this.log('No promo input field found');
                 return false;
             }
 
-            // Find submit button
-            const submitButton = this.findSubmitButton(input);
-            if (submitButton) {
-                this.log('Found submit button');
-            }
+            if (!this.isRunning) return false;
 
-            // Highlight the input
-            const originalStyle = input.style.cssText;
-            input.style.backgroundColor = '#fff3cd';
-            input.style.border = '2px solid #ffc107';
+            const submitButton = this.findSubmitButton(input);
             
-            // Type the code
-            this.log(`Typing code: ${code}`);
             input.value = code;
             input.dispatchEvent(new Event('input', { bubbles: true }));
             input.dispatchEvent(new Event('change', { bubbles: true }));
             
-            // Submit the code
-            await this.submitCode(input, code, submitButton);
+            if (submitButton) {
+                submitButton.click();
+            } else {
+                input.dispatchEvent(new KeyboardEvent('keydown', { key: 'Enter', bubbles: true }));
+            }
 
-            // Wait for response
-            await new Promise(resolve => setTimeout(resolve, 2000));
-            
-            // Reset style
-            input.style.cssText = originalStyle;
-            
-            // Add visual feedback
-            this.showFeedback(code, false);
+            await this.waitWithStopCheck(2000);
             
             return false;
         } catch (error) {
@@ -340,83 +245,54 @@ class PromoTester {
         }
     }
 
-    // Check for success messages
-    checkSuccess() {
-        const successPatterns = [
-            /success/i,
-            /applied/i,
-            /valid/i,
-            /accepted/i,
-            /discount.*added/i,
-            /coupon.*added/i,
-            /promo.*added/i,
-            /discount.*applied/i,
-            /coupon.*applied/i,
-            /promo.*applied/i,
-            /discount.*success/i,
-            /coupon.*success/i,
-            /promo.*success/i
-        ];
-
-        // Get all visible text on the page
-        const pageText = Array.from(document.getElementsByTagName('*'))
-            .filter(element => this.isVisibleElement(element))
-            .map(element => element.textContent)
-            .join(' ');
-
-        // Check for success patterns
-        return successPatterns.some(pattern => pattern.test(pageText));
+    async waitWithStopCheck(ms) {
+        return new Promise(resolve => {
+            const timer = setTimeout(resolve, ms);
+            if (!this.isRunning) {
+                clearTimeout(timer);
+                resolve();
+            }
+        });
     }
 
-    // Show feedback on the page
-    showFeedback(code, isSuccess) {
-        const feedbackDiv = document.createElement('div');
-        Object.assign(feedbackDiv.style, {
+    stopTesting() {
+        this.log('Stop command received');
+        this.isRunning = false;
+        this.showStoppedNotification();
+    }
+
+    showStoppedNotification() {
+        const stoppedDiv = document.createElement('div');
+        Object.assign(stoppedDiv.style, {
             position: 'fixed',
             top: '20px',
             right: '20px',
-            padding: '10px 20px',
-            backgroundColor: isSuccess ? '#d4edda' : '#f8d7da',
-            color: isSuccess ? '#155724' : '#721c24',
+            padding: '15px 25px',
+            backgroundColor: '#f44336',
+            color: 'white',
             borderRadius: '5px',
             zIndex: '10000',
-            boxShadow: '0 2px 5px rgba(0,0,0,0.2)'
+            boxShadow: '0 2px 5px rgba(0,0,0,0.2)',
+            fontSize: '16px',
+            fontWeight: 'bold'
         });
         
-        feedbackDiv.textContent = isSuccess ? 
-            `✓ Code "${code}" tested` : 
-            `Testing: "${code}"`;
-        
-        document.body.appendChild(feedbackDiv);
+        stoppedDiv.textContent = 'Testing stopped';
+        document.body.appendChild(stoppedDiv);
         
         setTimeout(() => {
-            feedbackDiv.style.opacity = '0';
-            setTimeout(() => feedbackDiv.remove(), 500);
-        }, 2000);
+            stoppedDiv.style.opacity = '0';
+            stoppedDiv.style.transition = 'opacity 0.5s';
+            setTimeout(() => stoppedDiv.remove(), 500);
+        }, 3000);
+
+        chrome.runtime.sendMessage({ 
+            type: 'complete',
+            message: 'Testing stopped'
+        });
     }
 
-    // Main testing function
-    async startTesting() {
-        if (this.isRunning) return;
-        this.isRunning = true;
-        this.log('Starting promo code testing...');
-
-        for (const code of PROMO_CODES) {
-            if (!this.isRunning) break;
-            
-            chrome.runtime.sendMessage({ 
-                type: 'progress', 
-                message: `Testing code: ${code}`,
-                code: code
-            });
-
-            await this.testPromoCode(code);
-            await new Promise(resolve => setTimeout(resolve, 1000));
-        }
-
-        this.log('Testing complete');
-        
-        // Show completion notification
+    showCompletionNotification() {
         const completionDiv = document.createElement('div');
         Object.assign(completionDiv.style, {
             position: 'fixed',
@@ -429,44 +305,29 @@ class PromoTester {
             zIndex: '10000',
             boxShadow: '0 2px 5px rgba(0,0,0,0.2)',
             fontSize: '16px',
-            fontWeight: 'bold'
+            fontWeight: 'bold',
+            transition: 'opacity 0.5s'
         });
         
-        const successCount = this.successfulCodes.length;
-        completionDiv.textContent = successCount > 0 
-            ? `Testing complete! Found ${successCount} working code${successCount > 1 ? 's' : ''}!` 
-            : 'Testing complete.';
-        
+        completionDiv.textContent = 'Testing completed!';
         document.body.appendChild(completionDiv);
         
-        // Remove after 5 seconds
         setTimeout(() => {
             completionDiv.style.opacity = '0';
-            completionDiv.style.transition = 'opacity 0.5s';
             setTimeout(() => completionDiv.remove(), 500);
-        }, 5000);
+        }, 3000);
 
         chrome.runtime.sendMessage({ 
             type: 'complete',
-            successfulCodes: this.successfulCodes,
-            message: `Testing complete! ${successCount > 0 
-                ? `Found ${successCount} working code${successCount > 1 ? 's' : ''}!` 
-                : 'Stopping process.'}`
+            message: 'Testing completed!'
         });
-        
-        this.isRunning = false;
-    }
-
-    stopTesting() {
-        this.log('Stopping tests...');
-        this.isRunning = false;
     }
 }
 
-// Create instance and listen for messages
 const promoTester = new PromoTester();
 
 chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
+    console.log('Message received:', request);
     if (request.action === 'startTesting') {
         promoTester.startTesting();
     } else if (request.action === 'stopTesting') {
@@ -475,5 +336,4 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
     return true;
 });
 
-// Log that the script has loaded
 console.log('PromoTester script loaded and ready');
