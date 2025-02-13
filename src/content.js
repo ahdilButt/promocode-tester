@@ -451,7 +451,7 @@ class PromoTester {
             successfulCodes: this.successfulCodes,
             message: `Testing complete! ${successCount > 0 
                 ? `Found ${successCount} working code${successCount > 1 ? 's' : ''}!` 
-                : 'No working codes found.'}`
+                : 'Stopping process.'}`
         });
         
         this.isRunning = false;
