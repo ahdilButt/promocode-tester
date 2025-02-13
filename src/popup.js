@@ -9,35 +9,40 @@ document.addEventListener('DOMContentLoaded', () => {
         if (message.includes('message channel closed')) {
             return;
         }
-        
         const logEntry = document.createElement('div');
         logEntry.textContent = `${new Date().toLocaleTimeString()}: ${message}`;
         logDiv.insertBefore(logEntry, logDiv.firstChild);
     }
 
-    function injectContentScript() {
-        return new Promise((resolve) => {
-            chrome.tabs.query({ active: true, currentWindow: true }, (tabs) => {
-                const tabId = tabs[0].id;
-                chrome.scripting.executeScript({
-                    target: { tabId },
-                    files: ['content.js']
-                })
-                .then(() => resolve(true))
-                .catch((error) => {
-                    addLog(`Injection error: ${error.message}`);
-                    resolve(false);
-                });
+    async function injectContentScript() {
+        try {
+            const [tab] = await chrome.tabs.query({ active: true, currentWindow: true });
+            if (!tab) {
+                throw new Error('No active tab found');
+            }
+
+            await chrome.scripting.executeScript({
+                target: { tabId: tab.id },
+                files: ['src/content.js']
             });
-        });
+
+            return true;
+        } catch (error) {
+            console.error('Injection error:', error);
+            statusDiv.textContent = 'Error: Could not inject script. Please refresh the page and try again.';
+            addLog('Error: Script injection failed');
+            return false;
+        }
     }
 
     async function sendMessageToTab(message) {
         try {
             const [tab] = await chrome.tabs.query({ active: true, currentWindow: true });
+            if (!tab) {
+                throw new Error('No active tab found');
+            }
             return await chrome.tabs.sendMessage(tab.id, message);
         } catch (error) {
-            // Ignore message channel errors
             if (!error.message.includes('message channel closed')) {
                 addLog(`Error: ${error.message}`);
             }
@@ -57,6 +62,9 @@ document.addEventListener('DOMContentLoaded', () => {
             startButton.disabled = false;
             return;
         }
+
+        // Give the content script time to initialize
+        await new Promise(resolve => setTimeout(resolve, 500));
 
         stopButton.disabled = false;
         statusDiv.textContent = 'Testing promo codes...';
@@ -84,7 +92,7 @@ document.addEventListener('DOMContentLoaded', () => {
             case 'error':
                 if (!message.message.includes('message channel closed')) {
                     statusDiv.textContent = message.message;
-                    addLog(`Error: ${message.message}`);
+                    addLog(`Error: ${error.message}`);
                 }
                 startButton.disabled = false;
                 stopButton.disabled = true;

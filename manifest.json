@@ -5,7 +5,8 @@
   "description": "Automatically tests promo codes on e-commerce sites",
   "permissions": [
     "activeTab",
-    "storage"
+    "storage",
+    "scripting"
   ],
   "action": {
     "default_popup": "src/popup.html",
