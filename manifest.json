@@ -28,4 +28,3 @@
     "service_worker": "src/background.js"
   }
 }
-  }
