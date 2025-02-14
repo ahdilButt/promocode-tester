@@ -70,4 +70,4 @@ This project is licensed under the MIT License - see the [LICENSE](LICENSE) file
 ## Acknowledgments
 
 - Thanks to everyone who tests and provides feedback
-- Inspired by the need to simplify promotional code testing
+- Inspired by the need to automate testing a huge amount of codes on a online store to score a discount.
